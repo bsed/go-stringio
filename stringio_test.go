@@ -3,8 +3,8 @@ package stringio
 import (
     "fmt";
     "testing";
-    "os";
-    "unsafe";
+    //"os";
+    //"unsafe";
 )
 
 func assertEquals(x interface{}, y interface{}) bool {

@@ -1,7 +1,6 @@
 package stringio
 
 import (
-    "fmt";
     "testing";
     //"os";
     //"unsafe";

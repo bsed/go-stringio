@@ -5,29 +5,36 @@
 package stringio
 
 import (
-    "fmt";
-    "os";
-    "strings";
+    "fmt"
+    "os"
+    "strings"
 )
 
 const buf_size = 4096
 
 var OSError os.Error = os.NewError("I/O operation on closed file")
 
-// stringIO struct similar to File and mimic almost all File operations.
-// The difference is StringIO never read/write to filesystem.
-// All operations are done in memory by accessing its underly
-// buffer.
+// A stringIO object is similar to a File object.
+// It mimics all File I/O operations by implementing the
+// common interfaces where File is implemented.
+// The main difference is StringIO never read/write to filesystem.
+// All operations are done in memory by accessing its underly buffer.
 // The difference b/w bytes.Buffer is that StringIO supports
-// Random access such as Seek where Buffer does not.
+// Random access where Buffer does not.
 // Most buffer operations are similar to bytes.Buffer.
+// StringIO also does not support any non I/O operations such as
+// Mkdir, Stats, Symlink, etc which does not have a real semantics for
+// buffer manipulation.
+// A StringIO object can not be reused once it is closed, just like
+// the file object.
 type stringIO struct {
-    buf []byte;
-    isclosed bool;
-    pos, last int;
-    name string;
+    buf       []byte
+    isclosed  bool
+    pos, last int
+    name      string
 }
 
+// Factory method served as the constructor.
 func StringIO() *stringIO {
     buf := make([]byte, buf_size)
     sio := new(stringIO)
@@ -44,14 +51,11 @@ func (s *stringIO) Fd() (fd int, err os.Error) {
     return -1, os.EINVAL
 }
 
-func (s *stringIO) GoString() string {
-    return s.name
-}
+func (s *stringIO) GoString() string { return s.name }
 
-func (s *stringIO) Name() string {
-    return s.name
-}
+func (s *stringIO) Name() string { return s.name }
 
+// Return the unread buffer.
 func (s *stringIO) String() string {
     if s.isClosed() {
         return "<nil>"
@@ -59,6 +63,7 @@ func (s *stringIO) String() string {
     return string(s.buf[s.pos:s.last])
 }
 
+// Return stored buffer until the last written position.
 func (s *stringIO) GetValueString() string {
     if s.isClosed() {
         return "<nil>"
@@ -66,6 +71,7 @@ func (s *stringIO) GetValueString() string {
     return string(s.buf[0:s.last])
 }
 
+// Return stored buffer as a byte array.
 func (s *stringIO) GetValueBytes() []byte {
     if s.isClosed() {
         return s.buf[0:0]
@@ -73,9 +79,10 @@ func (s *stringIO) GetValueBytes() []byte {
     return s.buf[0:s.last]
 }
 
+// Call Close will release the buffer/memory.
 func (s *stringIO) Close() (err os.Error) {
-    s.Truncate(0);
-    s.isclosed = true;
+    s.Truncate(0)
+    s.isclosed = true
     s.name = "StringIO <closed>"
     return
 }
@@ -87,7 +94,7 @@ func (s *stringIO) Truncate(n int) {
             s.last = 0
         }
         s.last = s.pos + n
-        s.buf = s.buf[0 : s.last]
+        s.buf = s.buf[0:s.last]
     }
 }
 
@@ -98,14 +105,14 @@ func (s *stringIO) Seek(offset int64, whence int) (ret int64, err os.Error) {
     pos, length := int64(s.pos), int64(len(s.buf))
     int64_O := int64(0)
     switch whence {
-        case 0:
-            ret = offset
-        case 1:
-            ret = offset + pos
-        case 2:
-            ret = offset + length
-        default:
-            return 0, os.EINVAL
+    case 0:
+        ret = offset
+    case 1:
+        ret = offset + pos
+    case 2:
+        ret = offset + length
+    default:
+        return 0, os.EINVAL
     }
     if ret < int64_O {
         ret = int64_O
@@ -113,43 +120,46 @@ func (s *stringIO) Seek(offset int64, whence int) (ret int64, err os.Error) {
     // stringIO currently does not support Seek beyond the
     // buf end, whereas posix does allow seek outside of
     // the file size, which will end up with a file hole.
+    // However, StringIO does allow a byte hold within its
+    // buffer size.
     if ret > length {
-        ret = length;
+        ret = length
     }
+    // Unfortunately, this will have to be a downcast.
     s.pos = int(ret)
     return
 }
 
 func (s *stringIO) Read(b []byte) (n int, err os.Error) {
     if s.isClosed() {
-        return 0, OSError;
+        return 0, OSError
     }
     if s.pos >= len(s.buf) {
-        return 0, os.EOF;
+        return 0, os.EOF
     }
-    return s.readBytes(b);
+    return s.readBytes(b)
 }
 
 func (s *stringIO) ReadAt(b []byte, offset int64) (n int, err os.Error) {
     if s.isClosed() {
-        return 0, OSError;
+        return 0, OSError
     }
     s.setPos(offset)
-    return s.readBytes(b);
+    return s.readBytes(b)
 }
 
 // stringIO Write will always be success until memory is used up
 // or system limit is reached.
 func (s *stringIO) Write(b []byte) (n int, err os.Error) {
     if s.isClosed() {
-        return 0, OSError;
+        return 0, OSError
     }
-    return s.writeBytes(b);
+    return s.writeBytes(b)
 }
 
 func (s *stringIO) WriteAt(b []byte, offset int64) (n int, err os.Error) {
     if s.isClosed() {
-        return 0, OSError;
+        return 0, OSError
     }
     s.setPos(offset)
     return s.writeBytes(b)
@@ -160,10 +170,6 @@ func (s *stringIO) WriteString(str string) (ret int, err os.Error) {
     return s.Write(b)
 }
 
-func (s *stringIO) Stat() (dir *os.Dir, err os.Error) {
-    return nil, nil
-}
-
 
 // private methods
 func (s *stringIO) readBytes(b []byte) (n int, err os.Error) {
@@ -171,10 +177,12 @@ func (s *stringIO) readBytes(b []byte) (n int, err os.Error) {
         return 0, nil
     }
     n = len(b)
-    if s.pos + n > s.last {
+    // Require more than what we have only get what we have.
+    // In other words, empty bytes will not be sent out.
+    if s.pos+n > s.last {
         n = s.last - s.pos
     }
-    copy(b, s.buf[s.pos : s.pos+n])
+    copy(b, s.buf[s.pos:s.pos+n])
     s.pos += n
     return
 }
@@ -184,7 +192,7 @@ func (s *stringIO) writeBytes(b []byte) (n int, err os.Error) {
     if n > s.length() {
         s.resize(n)
     }
-    copy(s.buf[s.pos : s.pos+n], b)
+    copy(s.buf[s.pos:s.pos+n], b)
     s.pos += n
     if s.pos > s.last {
         s.last = s.pos
@@ -195,23 +203,24 @@ func (s *stringIO) writeBytes(b []byte) (n int, err os.Error) {
 func (s *stringIO) setPos(offset int64) {
     pos, int64_O, length := int64(s.pos), int64(0), int64(len(s.buf))
     pos = offset
-    if offset < int64_O { pos = int64_O }
-    if offset > length { pos = length }
+    if offset < int64_O {
+        pos = int64_O
+    }
+    if offset > length {
+        pos = length
+    }
     s.pos = int(pos)
 }
 
-func (s *stringIO) length() int {
-    return len(s.buf) - s.pos
-}
+func (s *stringIO) length() int { return len(s.buf) - s.pos }
 
-func (s *stringIO) isClosed() bool {
-    return s.isclosed == true;
-}
+func (s *stringIO) isClosed() bool { return s.isclosed == true }
 
+// Stolen from bytes.Buffer (Use the same algorithm)
 func (s *stringIO) resize(n int) {
     if len(s.buf)+n > cap(s.buf) {
         buf := make([]byte, 2*cap(s.buf)+n)
-        copy(buf, s.buf[0:]);
-        s.buf = buf;
+        copy(buf, s.buf[0:])
+        s.buf = buf
     }
 }

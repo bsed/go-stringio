@@ -1,7 +1,7 @@
 package stringio
 
 import (
-    "testing";
+    "testing"
     //"os";
     //"unsafe";
 )
@@ -36,9 +36,10 @@ func TestFd(t *testing.T) {
 func TestGoName(t *testing.T) {
     sio := StringIO()
     if assertEquals(sio.Name(), sio.GoString()) == false {
-        t.Errorf("StringIO name mismatch. Name: %s," +
-                 "GoString: %s", sio.Name(),
-                 sio.GoString())
+        t.Errorf("StringIO name mismatch. Name: %s,"+
+            "GoString: %s",
+            sio.Name(),
+            sio.GoString())
     }
     sio.Close()
 }
@@ -90,7 +91,7 @@ func TestGetValueString(t *testing.T) {
     s = sio.GetValueString()
     if assertNotEqual(s, "<nil>") {
         t.Errorf("GetValueString return not <nil> " +
-                 "on closed StringIO object")
+            "on closed StringIO object")
     }
 }
 
@@ -98,15 +99,15 @@ func TestGetValueBytes(t *testing.T) {
     sio := simpleCreateAndSeek([]byte{'a', 'b', 'c'})
     bb := sio.GetValueBytes()
     if assertNotEqual(int(bb[0]), int('a')) ||
-       assertNotEqual(int(bb[1]), int('b')) ||
-       assertNotEqual(int(bb[2]), int('c')) {
+        assertNotEqual(int(bb[1]), int('b')) ||
+        assertNotEqual(int(bb[2]), int('c')) {
         t.Errorf("GetValueBytes return invalid value")
     }
     sio.Close()
     bb = sio.GetValueBytes()
     if assertNotEqual(len(bb), 0) {
         t.Errorf("GetValueBytes return non-zero byte " +
-                 "array on closed StringIO")
+            "array on closed StringIO")
     }
 }
 
@@ -117,7 +118,7 @@ func TestStringDiffGetValueString(t *testing.T) {
     ss := sio.String()
     if assertEquals(s, ss) {
         t.Errorf("GetValueString and String return the " +
-                 "same string value when pos is not 0")
+            "same string value when pos is not 0")
     }
 }
 
@@ -126,8 +127,8 @@ func TestReadBytes(t *testing.T) {
     sio := simpleCreateAndSeek([]byte{'a', 'b', 'c'})
     sio.Read(b) // read 3 bytes, pos is now == last
     if assertNotEqual(int(b[0]), int('a')) ||
-       assertNotEqual(int(b[1]), int('b')) ||
-       assertNotEqual(int(b[2]), int('c')) {
+        assertNotEqual(int(b[1]), int('b')) ||
+        assertNotEqual(int(b[2]), int('c')) {
         t.Errorf("Read return invalid value")
     }
     sio.Close()
@@ -217,7 +218,7 @@ func TestTruncate(t *testing.T) {
     s := sio.GetValueString()
     ss := sio.String()
     if assertNotEqual(s, ss) || assertNotEqual(s, "abc") ||
-       assertNotEqual(ss, "abc") {
+        assertNotEqual(ss, "abc") {
         t.Errorf("Truncate failed")
     }
     sio.Truncate(0)

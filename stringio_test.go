@@ -1,10 +1,6 @@
 package stringio
 
-import (
-    "testing"
-    //"os";
-    //"unsafe";
-)
+import "testing"
 
 func assertEquals(x interface{}, y interface{}) bool {
     return x == y
@@ -197,8 +193,9 @@ func TestReadWriteUnicodeString(t *testing.T) {
     sio.WriteString(s)
     sio.Seek(0, 0)
     p := make([]byte, len(s))
-    _, err := sio.Read(p)
-    if assertNotEqual(string(p), s) {
+    n, err := sio.Read(p)
+    if assertNotEqual(len(s), n) || assertNotEqual(string(p), s) ||
+       assertNotEqual(err, nil) {
         t.Errorf("Write Unicode string error: %s", err)
     }
 }
@@ -275,21 +272,3 @@ func TestWriteAt(t *testing.T) {
         t.Errorf("WriteAt byte array hole with invalid string length")
     }
 }
-
-/*
-func TestRedirectOsStdout(t *testing.T) {
-    var olds *os.File
-    olds = os.Stdout
-    sio := StringIO()
-    uptr1 := unsafe.Pointer(os.Stdout)
-    uptr2 := unsafe.Pointer(sio)
-    uptr1 = uptr2
-    fmt.Printf("abc")
-    os.Stdout = olds
-    sio.Seek(0, 0)
-    s := sio.GetValueString()
-    if assertNotEqual(s, "abc") {
-        t.Errorf("Testing redirect stdout failed")
-    }
-}
-*/

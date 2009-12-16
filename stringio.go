@@ -7,7 +7,7 @@ package stringio
 import (
     "fmt"
     "os"
-    "strings"
+    "syscall"
 )
 
 const buf_size = 4096
@@ -166,8 +166,8 @@ func (s *stringIO) WriteAt(b []byte, offset int64) (n int, err os.Error) {
 }
 
 func (s *stringIO) WriteString(str string) (ret int, err os.Error) {
-    b := strings.Bytes(str)
-    return s.Write(b)
+    b := syscall.StringByteSlice(str)
+    return s.Write(b[0 : len(b)-1])
 }
 
 
